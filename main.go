@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"flag"
+	"github.com/elitenomad/garagesale/schema"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 	"log"
@@ -22,7 +24,7 @@ func openDB() (*sqlx.DB, error) {
 
 	u := url.URL{
 		Scheme:   "postgres",
-		User:     url.UserPassword("postgres", "postgres"),
+		User:     url.UserPassword("pranavaswaroop", ""),
 		Host:     "localhost",
 		Path:     "postgres",
 		RawQuery: q.Encode(),
@@ -52,6 +54,27 @@ func main() {
 	}
 	defer db.Close()
 
+	flag.Parse()
+
+	switch flag.Arg(0) {
+	case "migrate":
+		if err := schema.Migrate(db); err != nil {
+			log.Println("Applying Migrations...", err)
+			os.Exit(1)
+		}
+		log.Println("Migration complete...")
+		return
+	case "seed":
+		if err := schema.Seed(db); err != nil {
+			log.Println("Applying Seed...", err)
+			os.Exit(1)
+		}
+		log.Println("Seeding complete...")
+		return
+	}
+
+	service := Products{db: db}
+
 	/*
 		--------------------------------------------
 		Starting API Service
@@ -59,7 +82,7 @@ func main() {
 	*/
 	api := http.Server{
 		Addr:              "localhost:3000",
-		Handler:           http.HandlerFunc(ListProducts),
+		Handler:           http.HandlerFunc(service.List),
 		ReadTimeout:       5 * time.Second,
 		WriteTimeout:      5 * time.Second,
 	}
@@ -130,36 +153,40 @@ func main() {
 }
 
 type Product struct {
-	Name	string `json:"name"`
-	Cost 	float64 `json:"cost"`
-	Quantity int64 `json:"quantity"`
+	ID          string    `db:"product_id" json:"id"`
+	Name        string    `db:"name" json:"name"`
+	Cost        int       `db:"cost" json:"cost"`
+	Quantity    int       `db:"quantity" json:"quantity"`
+	DateCreated time.Time `db:"date_created" json:"date_created"`
+	DateUpdated time.Time `db:"date_updated" json:"date_updated"`
 }
 
-func ListProducts(w http.ResponseWriter, r *http.Request) {
-	// This is not the real world scenario where we hardcode values
-	// products := []Product{}
-	// enchoding json will treat that as empty array rather than nil
-	// This helps FE to handle bugs efficiently.
-	products := []Product{
-		{ Name: "Geography books", Cost: 200.25, Quantity: 10},
-		{ Name: "History books", Cost: 300.25, Quantity: 15},
-		{ Name: "Civics books", Cost: 289.25, Quantity: 20},
-		{ Name: "Economics books", Cost: 100.25, Quantity: 25},
-		{ Name: "Physics books", Cost: 220.25, Quantity: 30},
+type Products struct {
+	db *sqlx.DB
+}
+
+func (p *Products) List(w http.ResponseWriter, r *http.Request) {
+	products := []Product{}
+
+	const q = `SELECT * from products`
+
+	if err := p.db.Select(&products, q); err != nil {
+		log.Printf("error: selecting products: %s", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 
 	data, err := json.Marshal(products)
 	if err != nil {
+		log.Println("error marshalling result", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	// We can explicitly set the header status Ok but it should always be set
-	// After the Header().set statements or else WriteHeader will override the values
-	// w.WriteHeader(http.StausOK)
+	w.WriteHeader(http.StatusOK)
 	if _, err := w.Write(data); err != nil {
-		log.Println("Error in writing the data ", err)
+		log.Println("error writing result", err)
 	}
 }
 
