@@ -2,12 +2,9 @@ package main
 
 import (
 	"context"
-	"encoding/json"
-	"flag"
-	"github.com/elitenomad/garagesale/internal/schema"
-	"github.com/elitenomad/garagesale/internal/platform/database"
-	"github.com/jmoiron/sqlx"
+	"github.com/elitenomad/garagesale/cmd/sales-api/internal/handlers"
 	_ "github.com/lib/pq"
+	"github.com/elitenomad/garagesale/internal/platform/database"
 	"log"
 	"net/http"
 	"os"
@@ -23,7 +20,7 @@ func main() {
 		--------------------------------------------
 		App starting
 		--------------------------------------------
-	 */
+	*/
 	log.Println("Main started ...")
 	defer log.Println("Main completed ...")
 
@@ -38,26 +35,9 @@ func main() {
 	}
 	defer db.Close()
 
-	flag.Parse()
-
-	switch flag.Arg(0) {
-	case "migrate":
-		if err := schema.Migrate(db); err != nil {
-			log.Println("Applying Migrations...", err)
-			os.Exit(1)
-		}
-		log.Println("Migration complete...")
-		return
-	case "seed":
-		if err := schema.Seed(db); err != nil {
-			log.Println("Applying Seed...", err)
-			os.Exit(1)
-		}
-		log.Println("Seeding complete...")
-		return
+	service := handlers.Products{
+		Db: db,
 	}
-
-	service := Products{db: db}
 
 	/*
 		--------------------------------------------
@@ -135,10 +115,3 @@ func main() {
 		}
 	}
 }
-
-
-type Products struct {
-	db *sqlx.DB
-}
-
-

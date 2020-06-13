@@ -9,7 +9,7 @@ var migrations = []darwin.Migration{
 	{
 		Version:     1,
 		Description: "Add products",
-		Script: CREATE_PRODUCTS_TABLE,
+		Script:      CREATE_PRODUCTS_TABLE,
 	},
 }
 
