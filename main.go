@@ -3,14 +3,34 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"github.com/jmoiron/sqlx"
+	_ "github.com/lib/pq"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 )
 import "fmt"
+
+func openDB() (*sqlx.DB, error) {
+	q := url.Values{}
+	q.Set("sslmode", "disable")
+	q.Set("timezone", "utc")
+
+	u := url.URL{
+		Scheme:   "postgres",
+		User:     url.UserPassword("postgres", "postgres"),
+		Host:     "localhost",
+		Path:     "postgres",
+		RawQuery: q.Encode(),
+	}
+
+	return sqlx.Open("postgres", u.String())
+}
+
 
 func main() {
 	/*
@@ -20,6 +40,17 @@ func main() {
 	 */
 	log.Println("Main started ...")
 	defer log.Println("Main completed ...")
+
+	/*
+		--------------------------------------------
+		Open DB connection
+		--------------------------------------------
+	*/
+	db, err := openDB()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
 
 	/*
 		--------------------------------------------
