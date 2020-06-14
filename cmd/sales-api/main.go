@@ -33,7 +33,7 @@ func run() error {
 
 	var cfg struct {
 		Web struct {
-			Address         string        `conf:"default:localhost:3000"`
+			Address         string        `conf:"default:localhost:8000"`
 			ReadTimeout     time.Duration `conf:"default:5s"`
 			WriteTimeout    time.Duration `conf:"default:5s"`
 			ShutdownTimeout time.Duration `conf:"default:5s"`
@@ -95,7 +95,7 @@ func run() error {
 		--------------------------------------------
 	*/
 	api := http.Server{
-		Addr:              "localhost:3000",
+		Addr:              "localhost:8000",
 		Handler:           http.HandlerFunc(service.List),
 		ReadTimeout:       5 * time.Second,
 		WriteTimeout:      5 * time.Second,
