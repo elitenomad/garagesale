@@ -7,11 +7,19 @@ import (
 	"github.com/elitenomad/garagesale/internal/platform/database"
 	"github.com/elitenomad/garagesale/internal/schema"
 	_ "github.com/lib/pq"
+	"github.com/pkg/errors"
 	"log"
 	"os"
 )
 
 func main() {
+	if err := run(); err != nil {
+		log.Printf("error: shutting down: %s", err)
+		os.Exit(1)
+	}
+}
+
+func run() error {
 
 	// =========================================================================
 	// Configuration
@@ -30,10 +38,10 @@ func main() {
 		if err == conf.ErrHelpWanted {
 			usage, err := conf.Usage("SALES", &cfg)
 			if err != nil {
-				log.Fatalf("error : generating config usage : %v", err)
+				return errors.Wrap(err, "generating config usage")
 			}
 			fmt.Println(usage)
-			return
+			return nil
 		}
 		log.Fatalf("error: parsing config: %s", err)
 	}
@@ -51,7 +59,7 @@ func main() {
 		DisableTLS: cfg.DB.DisableTLS,
 	})
 	if err != nil {
-		log.Fatal(err)
+		return errors.Wrap(err, "Database connection error")
 	}
 	defer db.Close()
 
@@ -60,17 +68,17 @@ func main() {
 	switch flag.Arg(0) {
 	case "migrate":
 		if err := schema.Migrate(db); err != nil {
-			log.Println("Applying Migrations...", err)
-			os.Exit(1)
+			return errors.Wrap(err, "Applying Migrations...")
 		}
 		log.Println("Migration complete...")
-		return
+		return nil
 	case "seed":
 		if err := schema.Seed(db); err != nil {
-			log.Println("Applying Seed...", err)
-			os.Exit(1)
+			return errors.Wrap(err, "Applying Seed...")
 		}
 		log.Println("Seeding complete...")
-		return
+		return nil
 	}
+
+	return  nil
 }

@@ -6,6 +6,7 @@ import (
 	"github.com/elitenomad/garagesale/internal/platform/conf"
 	_ "github.com/lib/pq"
 	"github.com/elitenomad/garagesale/internal/platform/database"
+	"github.com/pkg/errors"
 	"log"
 	"net/http"
 	"os"
@@ -17,6 +18,13 @@ import "fmt"
 
 
 func main() {
+	if err := run(); err != nil {
+		log.Printf("error: shutting down: %s", err)
+		os.Exit(1)
+	}
+}
+
+func run() error {
 
 	// =========================================================================
 	// Configuration
@@ -41,12 +49,12 @@ func main() {
 		if err == conf.ErrHelpWanted {
 			usage, err := conf.Usage("SALES", &cfg)
 			if err != nil {
-				log.Fatalf("error : generating config usage : %v", err)
+				errors.Wrap(err, "generating config usage")
 			}
 			fmt.Println(usage)
-			return
+			return nil
 		}
-		log.Fatalf("error: parsing config: %s", err)
+		errors.Wrap(err,"parsing config")
 	}
 
 	/*
@@ -70,7 +78,7 @@ func main() {
 		DisableTLS: cfg.DB.DisableTLS,
 	})
 	if err != nil {
-		log.Fatal(err)
+		errors.Wrap(err,"Database connection issue")
 	}
 	defer db.Close()
 
@@ -125,7 +133,7 @@ func main() {
 	*/
 	select {
 	case err := <-serverErrors:
-		log.Fatalf("error: listening and serving: %s", err)
+		errors.Wrap(err,"listening and serving error...")
 	case <-interruption:
 		fmt.Println("Main: starting shutdown")
 
@@ -150,7 +158,9 @@ func main() {
 		}
 
 		if err != nil {
-			log.Fatalf("main : could not stop server gracefully : %v", err)
+			errors.Wrap(err, "main : could not stop server gracefully")
 		}
 	}
+
+	return nil
 }
