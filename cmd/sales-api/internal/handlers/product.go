@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"encoding/json"
+	"github.com/elitenomad/garagesale/internal/platform/web"
 	"github.com/elitenomad/garagesale/internal/product"
 	"github.com/go-chi/chi"
 	"github.com/jmoiron/sqlx"
@@ -28,16 +28,7 @@ func (p *Product) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data, err := json.Marshal(products)
-	if err != nil {
-		p.Log.Println("error marshalling result", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.WriteHeader(http.StatusOK)
-	if _, err := w.Write(data); err != nil {
+	if err := web.Respond(w, products, http.StatusOK); err != nil {
 		p.Log.Println("error writing result", err)
 	}
 }
@@ -52,16 +43,7 @@ func (p *Product) Fetch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data, err := json.Marshal(product)
-	if err != nil {
-		p.Log.Println("error marshalling result", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.WriteHeader(http.StatusOK)
-	if _, err := w.Write(data); err != nil {
+	if err := web.Respond(w, product, http.StatusOK); err != nil {
 		p.Log.Println("error writing result", err)
 	}
 }
@@ -71,7 +53,7 @@ func (p *Product) Create(w http.ResponseWriter, r *http.Request) {
 
 	// Ensure we parse the info passed onto the API. In this case the Product data
 	var np product.NewProduct
-	if err := json.NewDecoder(r.Body).Decode(&np); err != nil {
+	if err := web.Decode(r, &np); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		p.Log.Println(err)
 		return
@@ -84,16 +66,7 @@ func (p *Product) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data, err := json.Marshal(product)
-	if err != nil {
-		p.Log.Println("error marshalling result", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.WriteHeader(http.StatusCreated)
-	if _, err := w.Write(data); err != nil {
+	if err := web.Respond(w, product, http.StatusCreated); err != nil {
 		p.Log.Println("error writing result", err)
 	}
 }
