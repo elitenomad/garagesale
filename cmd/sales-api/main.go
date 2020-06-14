@@ -84,11 +84,6 @@ func run() error {
 	}
 	defer db.Close()
 
-	service := handlers.Products{
-		Db: db,
-		Log: log,
-	}
-
 	/*
 		--------------------------------------------
 		Starting API Service
@@ -96,7 +91,7 @@ func run() error {
 	*/
 	api := http.Server{
 		Addr:              "localhost:8000",
-		Handler:           http.HandlerFunc(service.List),
+		Handler:           handlers.API(log, db),
 		ReadTimeout:       5 * time.Second,
 		WriteTimeout:      5 * time.Second,
 	}

@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"github.com/elitenomad/garagesale/internal/product"
+	"github.com/go-chi/chi"
 	"github.com/jmoiron/sqlx"
 	"log"
 	"net/http"
@@ -18,7 +19,7 @@ type Product struct {
 	Log *log.Logger
 }
 
-func (p *Products) List(w http.ResponseWriter, r *http.Request) {
+func (p *Product) List(w http.ResponseWriter, r *http.Request) {
 	products, err := product.List(p.Db)
 	if err != nil {
 		p.Log.Printf("error: selecting products: %s", err)
@@ -41,7 +42,7 @@ func (p *Products) List(w http.ResponseWriter, r *http.Request) {
 }
 
 func (p *Product) Fetch(w http.ResponseWriter, r *http.Request) {
-	id := "TODO-FETCH-FROM-ROUTER"
+	id := chi.URLParam(r, "id")
 
 	product, err := product.Fetch(p.Db, id)
 	if err != nil {
