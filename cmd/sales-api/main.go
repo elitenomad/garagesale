@@ -25,6 +25,8 @@ func main() {
 }
 
 func run() error {
+	// Global variable for this program.
+	log := log.New(os.Stdout, "SALES: ", log.LstdFlags|log.Lmicroseconds|log.Llongfile)
 
 	// =========================================================================
 	// Configuration
@@ -84,6 +86,7 @@ func run() error {
 
 	service := handlers.Products{
 		Db: db,
+		Log: log,
 	}
 
 	/*
