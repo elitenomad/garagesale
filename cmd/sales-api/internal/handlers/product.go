@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
-	"github.com/elitenomad/garagesale/internal/platform/product"
+	"github.com/elitenomad/garagesale/internal/product"
 	"github.com/jmoiron/sqlx"
 	"log"
 	"net/http"

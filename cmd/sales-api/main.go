@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"github.com/elitenomad/garagesale/cmd/sales-api/internal/handlers"
+	"github.com/elitenomad/garagesale/internal/platform/conf"
 	_ "github.com/lib/pq"
 	"github.com/elitenomad/garagesale/internal/platform/database"
 	"log"
@@ -16,6 +17,38 @@ import "fmt"
 
 
 func main() {
+
+	// =========================================================================
+	// Configuration
+
+	var cfg struct {
+		Web struct {
+			Address         string        `conf:"default:localhost:3000"`
+			ReadTimeout     time.Duration `conf:"default:5s"`
+			WriteTimeout    time.Duration `conf:"default:5s"`
+			ShutdownTimeout time.Duration `conf:"default:5s"`
+		}
+		DB struct {
+			User       string `conf:"default:pranavaswaroop"`
+			Password   string `conf:"default:test,noprint"`
+			Host       string `conf:"default:localhost"`
+			Name       string `conf:"default:postgres"`
+			DisableTLS bool   `conf:"default:false"`
+		}
+	}
+
+	if err := conf.Parse(os.Args[1:], "SALES", &cfg); err != nil {
+		if err == conf.ErrHelpWanted {
+			usage, err := conf.Usage("SALES", &cfg)
+			if err != nil {
+				log.Fatalf("error : generating config usage : %v", err)
+			}
+			fmt.Println(usage)
+			return
+		}
+		log.Fatalf("error: parsing config: %s", err)
+	}
+
 	/*
 		--------------------------------------------
 		App starting
@@ -29,7 +62,13 @@ func main() {
 		Open DB connection
 		--------------------------------------------
 	*/
-	db, err := database.OpenDB()
+	db, err := database.OpenDB(database.Config{
+		User:      cfg.DB.User,
+		Password:  "",
+		Host:       cfg.DB.Host,
+		Name:       cfg.DB.Name,
+		DisableTLS: cfg.DB.DisableTLS,
+	})
 	if err != nil {
 		log.Fatal(err)
 	}
