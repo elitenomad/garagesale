@@ -20,53 +20,62 @@ type Product struct {
 	Log *log.Logger
 }
 
-func (p *Product) List(w http.ResponseWriter, r *http.Request) {
+func (p *Product) List(w http.ResponseWriter, r *http.Request) error {
 	products, err := product.List(p.Db)
 	if err != nil {
-		p.Log.Printf("error: selecting products: %s", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+		//p.Log.Printf("error: selecting products: %s", err)
+		//w.WriteHeader(http.StatusInternalServerError)
+
+		return err
 	}
 
-	if err := web.Respond(w, products, http.StatusOK); err != nil {
-		p.Log.Println("error writing result", err)
-	}
+	//if err := web.Respond(w, products, http.StatusOK); err != nil {
+	//	p.Log.Println("error writing result", err)
+	//}
+
+	return web.Respond(w, products, http.StatusOK)
 }
 
-func (p *Product) Fetch(w http.ResponseWriter, r *http.Request) {
+func (p *Product) Fetch(w http.ResponseWriter, r *http.Request) error {
 	id := chi.URLParam(r, "id")
 
 	product, err := product.Fetch(p.Db, id)
 	if err != nil {
-		p.Log.Printf("error: selecting products: %s", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+		//p.Log.Printf("error: selecting products: %s", err)
+		//w.WriteHeader(http.StatusInternalServerError)
+		return err
 	}
 
-	if err := web.Respond(w, product, http.StatusOK); err != nil {
-		p.Log.Println("error writing result", err)
-	}
+	//if err := web.Respond(w, product, http.StatusOK); err != nil {
+	//	p.Log.Println("error writing result", err)
+	//}
+
+	return web.Respond(w, product, http.StatusOK)
 }
 
 
-func (p *Product) Create(w http.ResponseWriter, r *http.Request) {
+func (p *Product) Create(w http.ResponseWriter, r *http.Request) error {
 
 	// Ensure we parse the info passed onto the API. In this case the Product data
 	var np product.NewProduct
 	if err := web.Decode(r, &np); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		p.Log.Println(err)
-		return
+		//w.WriteHeader(http.StatusBadRequest)
+		//p.Log.Println(err)
+
+		return err
 	}
 
 	product, err := product.Create(p.Db, np, time.Now())
 	if err != nil {
-		p.Log.Printf("error: selecting products: %s", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+		//p.Log.Printf("error: selecting products: %s", err)
+		//w.WriteHeader(http.StatusInternalServerError)
+
+		return err
 	}
 
-	if err := web.Respond(w, product, http.StatusCreated); err != nil {
-		p.Log.Println("error writing result", err)
-	}
+	//if err := web.Respond(w, product, http.StatusCreated); err != nil {
+	//	return err
+	//}
+
+	return web.Respond(w, product, http.StatusCreated)
 }
