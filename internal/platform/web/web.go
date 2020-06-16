@@ -26,13 +26,13 @@ func NewApp(logger *log.Logger) *App {
 
 func (app *App) Handle(method, pattern string, h Handler) {
 	fn := func(w http.ResponseWriter, r *http.Request) {
-		if err := h(w, r); err != nil {
-			resp := ErrorResponse{
-				Error: err.Error(),
-			}
+		err := h(w, r)
 
-			if err := Respond(w, resp, http.StatusInternalServerError); err != nil {
-				app.log.Println(err)
+		if err != nil {
+			app.log.Printf("ERROR : %+v", err)
+
+			if err := RespondError(w, err); err != nil {
+				app.log.Printf("ERROR : %v", err)
 			}
 		}
 	}

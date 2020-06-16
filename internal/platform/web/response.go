@@ -20,3 +20,22 @@ func Respond(w http.ResponseWriter, val interface{}, statusCode int) error  {
 
 	return nil
 }
+
+
+func RespondError(w http.ResponseWriter, err error) error {
+	if webErr, ok := err.(*Error); ok {
+		resp := ErrorResponse{
+			Error: webErr.Err.Error(),
+		}
+
+		if err := Respond(w, resp, webErr.Status); err != nil {
+			return err
+		}
+	}
+
+	resp := ErrorResponse{
+		Error: http.StatusText(http.StatusInternalServerError),
+	}
+
+	return Respond(w, resp, http.StatusInternalServerError)
+}
