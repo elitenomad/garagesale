@@ -1,10 +1,17 @@
 package product
 
 import (
+	"database/sql"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 	"time"
+)
+
+// Failure scenarios.
+var (
+	ErrNotFound = errors.New("product not found")
+	ErrInvalidID = errors.New("ID is not in its proper form")
 )
 
 func List(db *sqlx.DB) ([]Product, error) {
@@ -13,20 +20,28 @@ func List(db *sqlx.DB) ([]Product, error) {
 	const q = `SELECT * from products`
 
 	if err := db.Select(&products, q); err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "Listing products")
 	}
 
 	return products, nil
 }
 
 func Fetch(db *sqlx.DB, id string) (*Product, error) {
+	if _, err := uuid.Parse(id); err != nil {
+		return nil, ErrInvalidID
+	}
+
 	var p Product
 
 	// No inputs in the query
 	const q = `SELECT * from products where product_id = $1`
 
 	if err := db.Get(&p, q, id); err != nil {
-		return nil, err
+		if err == sql.ErrNoRows {
+			return nil, ErrNotFound
+		}
+
+		return nil, errors.Wrap(err, "selecting single product")
 	}
 
 
@@ -43,13 +58,17 @@ func Create(db *sqlx.DB, data NewProduct, now time.Time) (*Product, error) {
 		DateUpdated: now,
 	}
 
-	// No inputs in the query
-	const q = `INSERT into products 
-		(product_id, name, cost, quantity, date_created, date_updated) 
+	const q = `
+		INSERT INTO products
+		(product_id, name, cost, quantity, date_created, date_updated)
 		VALUES ($1, $2, $3, $4, $5, $6)`
 
-	if _, err := db.Exec(q, p.ID,p.Name, p.Cost, p.Quantity, p.DateCreated, p.DateUpdated); err != nil {
-		return nil, errors.Wrap(err, "Insert product failed...")
+	_, err := db.Exec(q,
+		p.ID, p.Name,
+		p.Cost, p.Quantity,
+		p.DateCreated, p.DateUpdated)
+	if err != nil {
+		return nil, errors.Wrap(err, "inserting product")
 	}
 
 	return &p, nil
