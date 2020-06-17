@@ -1,6 +1,7 @@
 package product
 
 import (
+	"context"
 	"database/sql"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
@@ -14,7 +15,7 @@ var (
 	ErrInvalidID = errors.New("ID is not in its proper form")
 )
 
-func List(db *sqlx.DB) ([]Product, error) {
+func List(ctx context.Context, db *sqlx.DB) ([]Product, error) {
 	products := []Product{}
 
 	const q = `SELECT * from products`
@@ -26,7 +27,7 @@ func List(db *sqlx.DB) ([]Product, error) {
 	return products, nil
 }
 
-func Fetch(db *sqlx.DB, id string) (*Product, error) {
+func Fetch(ctx context.Context, db *sqlx.DB, id string) (*Product, error) {
 	if _, err := uuid.Parse(id); err != nil {
 		return nil, ErrInvalidID
 	}
@@ -48,7 +49,7 @@ func Fetch(db *sqlx.DB, id string) (*Product, error) {
 	return &p, nil
 }
 
-func Create(db *sqlx.DB, data NewProduct, now time.Time) (*Product, error) {
+func Create(ctx context.Context, db *sqlx.DB, data NewProduct, now time.Time) (*Product, error) {
 	p := Product{
 		ID: uuid.New().String(),
 		Name:     data.Name,

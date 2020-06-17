@@ -22,7 +22,7 @@ type Product struct {
 }
 
 func (p *Product) List(w http.ResponseWriter, r *http.Request) error {
-	products, err := product.List(p.Db)
+	products, err := product.List(r.Context(), p.Db)
 	if err != nil {
 		return errors.Wrap(err, "getting product list")
 	}
@@ -33,7 +33,7 @@ func (p *Product) List(w http.ResponseWriter, r *http.Request) error {
 func (p *Product) Fetch(w http.ResponseWriter, r *http.Request) error {
 	id := chi.URLParam(r, "id")
 
-	pdct, err := product.Fetch(p.Db, id)
+	pdct, err := product.Fetch(r.Context(), p.Db, id)
 	if err != nil {
 		if err != nil {
 			switch err {
@@ -57,7 +57,7 @@ func (p *Product) Create(w http.ResponseWriter, r *http.Request) error {
 		return errors.Wrap(err, "decoding new product")
 	}
 
-	product, err := product.Create(p.Db, np, time.Now())
+	product, err := product.Create(r.Context(), p.Db, np, time.Now())
 	if err != nil {
 		return errors.Wrap(err, "creating new product")
 	}

@@ -1,6 +1,7 @@
 package product_test
 
 import (
+	"context"
 	"github.com/elitenomad/garagesale/internal/platform/database/databasetest"
 	"github.com/elitenomad/garagesale/internal/product"
 	"github.com/google/go-cmp/cmp"
@@ -12,6 +13,8 @@ func TestCreate(t *testing.T) {
 	db, cleanup := databasetest.Setup(t)
 	defer cleanup()
 
+	ctx := context.Background()
+
 	np := product.NewProduct{
 		Name:     "Comic Books",
 		Cost:     10,
@@ -19,12 +22,12 @@ func TestCreate(t *testing.T) {
 	}
 
 	now := time.Date(2020, time.June, 1, 0, 0, 0, 0, time.UTC)
-	p, err := product.Create(db, np, now)
+	p, err := product.Create(ctx, db, np, now)
 	if err != nil {
 		t.Fatalf("Could not create product: %v ", err)
 	}
 
-	saved, err := product.Fetch(db, p.ID)
+	saved, err := product.Fetch(ctx, db, p.ID)
 	if err != nil {
 		t.Fatalf("Could not retrieve the product %v ", err)
 	}
@@ -38,6 +41,8 @@ func TestList(t *testing.T) {
 	db, cleanup := databasetest.Setup(t)
 	defer cleanup()
 
+	ctx := context.Background()
+
 	np_1 := product.NewProduct{
 		Name:     "Comic Books",
 		Cost:     10,
@@ -47,12 +52,12 @@ func TestList(t *testing.T) {
 	now := time.Date(2020, time.June, 1, 0, 0, 0, 0, time.UTC)
 	// Alos we can seed database
 	// schema.Seed(db)
-	_, err := product.Create(db, np_1, now)
+	_, err := product.Create(ctx, db, np_1, now)
 	if err != nil {
 		t.Fatalf("Could not create product: %v ", err)
 	}
 
-	saved, err := product.List(db)
+	saved, err := product.List(ctx, db)
 	if err != nil {
 		t.Fatalf("Could not retrieve the product %v ", err)
 	}
