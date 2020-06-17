@@ -54,8 +54,8 @@ func Create(db *sqlx.DB, data NewProduct, now time.Time) (*Product, error) {
 		Name:     data.Name,
 		Cost:     data.Cost,
 		Quantity: data.Quantity,
-		DateCreated: now,
-		DateUpdated: now,
+		DateCreated: now.UTC(),
+		DateUpdated: now.UTC(),
 	}
 
 	const q = `
