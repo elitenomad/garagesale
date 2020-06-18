@@ -11,6 +11,11 @@ var migrations = []darwin.Migration{
 		Description: "Add products",
 		Script:      CREATE_PRODUCTS_TABLE,
 	},
+	{
+		Version:     2,
+		Description: "Add sales",
+		Script:      CREATE_SALES_TABLE,
+	},
 }
 
 func Migrate(db *sqlx.DB) error {

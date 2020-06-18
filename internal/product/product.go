@@ -18,7 +18,13 @@ var (
 func List(ctx context.Context, db *sqlx.DB) ([]Product, error) {
 	products := []Product{}
 
-	const q = `SELECT * from products`
+	const q = `SELECT
+				p.*,
+				COALESCE(SUM(s.quantity), 0) as sold,
+				COALESCE(SUM(s.paid), 0) as revenue
+			FROM products AS p
+			LEFT JOIN sales AS s ON p.product_id = s.product_id
+			GROUP BY p.product_id`
 
 	if err := db.Select(&products, q); err != nil {
 		return nil, errors.Wrap(err, "Listing products")
@@ -35,7 +41,14 @@ func Fetch(ctx context.Context, db *sqlx.DB, id string) (*Product, error) {
 	var p Product
 
 	// No inputs in the query
-	const q = `SELECT * from products where product_id = $1`
+	const q = `SELECT
+				p.*,
+				COALESCE(SUM(s.quantity), 0) as sold,
+				COALESCE(SUM(s.paid), 0) as revenue
+			FROM products AS p
+			LEFT JOIN sales AS s ON p.product_id = s.product_id
+			where p.product_id = $1
+			GROUP BY p.product_id`
 
 	if err := db.Get(&p, q, id); err != nil {
 		if err == sql.ErrNoRows {
