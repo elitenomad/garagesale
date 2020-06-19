@@ -65,6 +65,43 @@ func (p *Product) Create(w http.ResponseWriter, r *http.Request) error {
 	return web.Respond(w, product, http.StatusCreated)
 }
 
+func (p *Product) Update(w http.ResponseWriter, r *http.Request) error {
+	id := chi.URLParam(r, "id")
+
+	var update product.UpdateProduct
+	if err := web.Decode(r, &update); err != nil {
+		return errors.Wrap(err, "decoding product update")
+	}
+
+	if err := product.Update(r.Context(), p.Db, id, update, time.Now()); err != nil {
+		switch err {
+		case product.ErrNotFound:
+			return web.NewRequestError(err, http.StatusNotFound)
+		case product.ErrInvalidID:
+			return web.NewRequestError(err, http.StatusBadRequest)
+		default:
+			return errors.Wrapf(err, "updating product %q", id)
+		}
+	}
+
+	return web.Respond(w, nil, http.StatusNoContent)
+}
+
+func (p *Product) Delete(w http.ResponseWriter, r *http.Request) error {
+	id := chi.URLParam(r, "id")
+
+	if err := product.Delete(r.Context(), p.Db, id); err != nil {
+		switch err {
+		case product.ErrInvalidID:
+			return web.NewRequestError(err, http.StatusBadRequest)
+		default:
+			return errors.Wrapf(err, "deleting product %q", id)
+		}
+	}
+
+	return web.Respond(w, nil, http.StatusNoContent)
+}
+
 func (p *Product) AddSale(w http.ResponseWriter, r *http.Request) error {
 	var ns product.NewSale
 	if err := web.Decode(r, &ns); err != nil {
