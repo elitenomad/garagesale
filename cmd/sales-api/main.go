@@ -2,20 +2,20 @@ package main
 
 import (
 	"context"
-	"github.com/elitenomad/garagesale/cmd/sales-api/internal/handlers"
-	"github.com/elitenomad/garagesale/internal/platform/conf"
-	_ "github.com/lib/pq"
-	"github.com/elitenomad/garagesale/internal/platform/database"
-	"github.com/pkg/errors"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
-)
-import "fmt"
 
+	"github.com/elitenomad/garagesale/cmd/sales-api/internal/handlers"
+	"github.com/elitenomad/garagesale/internal/platform/conf"
+	"github.com/elitenomad/garagesale/internal/platform/database"
+	_ "github.com/lib/pq"
+	"github.com/pkg/errors"
+)
 
 func main() {
 	if err := run(); err != nil {
@@ -39,11 +39,11 @@ func run() error {
 			ShutdownTimeout time.Duration `conf:"default:5s"`
 		}
 		DB struct {
-			User       string `conf:"default:pranavaswaroop"`
+			User       string `conf:"default:postgres"`
 			Password   string `conf:"default:test,noprint"`
 			Host       string `conf:"default:localhost"`
 			Name       string `conf:"default:postgres"`
-			DisableTLS bool   `conf:"default:false"`
+			DisableTLS bool   `conf:"default:true"`
 		}
 	}
 
@@ -56,7 +56,7 @@ func run() error {
 			fmt.Println(usage)
 			return nil
 		}
-		errors.Wrap(err,"parsing config")
+		errors.Wrap(err, "parsing config")
 	}
 
 	/*
@@ -73,14 +73,14 @@ func run() error {
 		--------------------------------------------
 	*/
 	db, err := database.OpenDB(database.Config{
-		User:      cfg.DB.User,
-		Password:  "",
+		User:       cfg.DB.User,
+		Password:   "",
 		Host:       cfg.DB.Host,
 		Name:       cfg.DB.Name,
 		DisableTLS: cfg.DB.DisableTLS,
 	})
 	if err != nil {
-		errors.Wrap(err,"Database connection issue")
+		errors.Wrap(err, "Database connection issue")
 	}
 	defer db.Close()
 
@@ -90,10 +90,10 @@ func run() error {
 		--------------------------------------------
 	*/
 	api := http.Server{
-		Addr:              "localhost:8000",
-		Handler:           handlers.API(log, db),
-		ReadTimeout:       5 * time.Second,
-		WriteTimeout:      5 * time.Second,
+		Addr:         "localhost:8000",
+		Handler:      handlers.API(log, db),
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 5 * time.Second,
 	}
 
 	/*
@@ -123,7 +123,6 @@ func run() error {
 	interruption := make(chan os.Signal, 1)
 	signal.Notify(interruption, os.Interrupt, syscall.SIGTERM)
 
-
 	/*
 		--------------------------------------------
 		Wait before shutdown.
@@ -131,7 +130,7 @@ func run() error {
 	*/
 	select {
 	case err := <-serverErrors:
-		errors.Wrap(err,"listening and serving error...")
+		errors.Wrap(err, "listening and serving error...")
 	case <-interruption:
 		fmt.Println("Main: starting shutdown")
 

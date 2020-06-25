@@ -3,13 +3,14 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
+	"os"
+
 	"github.com/elitenomad/garagesale/internal/platform/conf"
 	"github.com/elitenomad/garagesale/internal/platform/database"
 	"github.com/elitenomad/garagesale/internal/schema"
 	_ "github.com/lib/pq"
 	"github.com/pkg/errors"
-	"log"
-	"os"
 )
 
 func main() {
@@ -26,11 +27,11 @@ func run() error {
 
 	var cfg struct {
 		DB struct {
-			User       string `conf:"default:pranavaswaroop"`
+			User       string `conf:"default:postgres"`
 			Password   string `conf:"default:test,noprint"`
 			Host       string `conf:"default:localhost"`
 			Name       string `conf:"default:postgres"`
-			DisableTLS bool   `conf:"default:false"`
+			DisableTLS bool   `conf:"default:true"`
 		}
 	}
 
@@ -52,8 +53,8 @@ func run() error {
 		--------------------------------------------
 	*/
 	db, err := database.OpenDB(database.Config{
-		User:      cfg.DB.User,
-		Password:  "",
+		User:       cfg.DB.User,
+		Password:   "",
 		Host:       cfg.DB.Host,
 		Name:       cfg.DB.Name,
 		DisableTLS: cfg.DB.DisableTLS,
@@ -80,5 +81,5 @@ func run() error {
 		return nil
 	}
 
-	return  nil
+	return nil
 }
