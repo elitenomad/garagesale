@@ -1,17 +1,19 @@
 package database
 
 import (
+	"context"
+	"net/url"
+
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
-	"net/url"
 )
 
 // Config is the configuration require to start the database
 type Config struct {
-	User string
-	Password string
-	Host string
-	Name string
+	User       string
+	Password   string
+	Host       string
+	Name       string
 	DisableTLS bool
 }
 
@@ -38,3 +40,10 @@ func OpenDB(cfg Config) (*sqlx.DB, error) {
 	return sqlx.Open("postgres", u.String())
 }
 
+func StatusCheck(ctx context.Context, db *sqlx.DB) error {
+	const q = `SELECT true`
+
+	var tmp bool
+
+	return db.QueryRowContext(ctx, q).Scan(&tmp)
+}

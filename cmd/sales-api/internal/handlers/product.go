@@ -1,23 +1,19 @@
 package handlers
 
 import (
+	"log"
+	"net/http"
+	"time"
+
 	"github.com/elitenomad/garagesale/internal/platform/web"
 	"github.com/elitenomad/garagesale/internal/product"
 	"github.com/go-chi/chi"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
-	"log"
-	"net/http"
-	"time"
 )
 
-type Products struct {
-	Db *sqlx.DB
-	Log *log.Logger
-}
-
 type Product struct {
-	Db *sqlx.DB
+	Db  *sqlx.DB
 	Log *log.Logger
 }
 
@@ -49,7 +45,6 @@ func (p *Product) Fetch(w http.ResponseWriter, r *http.Request) error {
 
 	return web.Respond(w, pdct, http.StatusOK)
 }
-
 
 func (p *Product) Create(w http.ResponseWriter, r *http.Request) error {
 	var np product.NewProduct
