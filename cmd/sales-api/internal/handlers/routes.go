@@ -12,7 +12,7 @@ import (
 func API(logger *log.Logger, db *sqlx.DB) http.Handler {
 
 	// Construct the web.App which holds all routes as well as common Middleware.
-	app := web.NewApp(logger, mid.Errors(logger))
+	app := web.NewApp(logger, mid.Errors(logger), mid.Metrics())
 
 	{
 		c := Check{
