@@ -1,13 +1,27 @@
 package web
 
 import (
+	"context"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi"
 )
 
-type Handler func(http.ResponseWriter, *http.Request) error
+// ctxKey represents the type of value for the context key.
+type ctxKey int
+
+// KeyValues is how request values or stored/retrieved.
+const KeyValues ctxKey = 1
+
+// Values carries information about each request.
+type Values struct {
+	StatusCode int
+	Start      time.Time
+}
+
+type Handler func(context.Context, http.ResponseWriter, *http.Request) error
 
 // App is the entrypoint to web application
 type App struct {
@@ -30,7 +44,14 @@ func (app *App) Handle(method, pattern string, h Handler) {
 	h = wrapMiddleware(app.mw, h)
 
 	fn := func(w http.ResponseWriter, r *http.Request) {
-		err := h(w, r)
+
+		v := Values{
+			Start: time.Now(),
+		}
+
+		ctx := context.WithValue(r.Context(), KeyValues, &v)
+
+		err := h(ctx, w, r)
 
 		if err != nil {
 			app.log.Printf("Unhandled ERROR : %+v", err)

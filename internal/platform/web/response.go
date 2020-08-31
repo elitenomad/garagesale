@@ -2,11 +2,12 @@ package web
 
 import (
 	"encoding/json"
-	"github.com/pkg/errors"
 	"net/http"
+
+	"github.com/pkg/errors"
 )
 
-func Respond(w http.ResponseWriter, val interface{}, statusCode int) error  {
+func Respond(w http.ResponseWriter, val interface{}, statusCode int) error {
 	if statusCode == http.StatusNoContent {
 		w.WriteHeader(statusCode)
 		return nil
@@ -20,12 +21,11 @@ func Respond(w http.ResponseWriter, val interface{}, statusCode int) error  {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(statusCode)
 	if _, err := w.Write(data); err != nil {
-		return  errors.Wrap(err, "Problem in processing the data to client...")
+		return errors.Wrap(err, "Problem in processing the data to client...")
 	}
 
 	return nil
 }
-
 
 func RespondError(w http.ResponseWriter, err error) error {
 	if webErr, ok := errors.Cause(err).(*Error); ok {
