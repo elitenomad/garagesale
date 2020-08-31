@@ -1,21 +1,25 @@
+// This program performs administrative tasks for the garage sale service.
+
 package main
 
 import (
-	"flag"
+	"context"
 	"fmt"
 	"log"
 	"os"
+	"time"
 
+	"github.com/elitenomad/garagesale/internal/platform/auth"
 	"github.com/elitenomad/garagesale/internal/platform/conf"
 	"github.com/elitenomad/garagesale/internal/platform/database"
 	"github.com/elitenomad/garagesale/internal/schema"
-	_ "github.com/lib/pq"
+	"github.com/elitenomad/garagesale/internal/user"
 	"github.com/pkg/errors"
 )
 
 func main() {
 	if err := run(); err != nil {
-		log.Printf("error: shutting down: %s", err)
+		log.Printf("error: %s", err)
 		os.Exit(1)
 	}
 }
@@ -28,58 +32,122 @@ func run() error {
 	var cfg struct {
 		DB struct {
 			User       string `conf:"default:postgres"`
-			Password   string `conf:"default:test,noprint"`
+			Password   string `conf:"default:postgres,noprint"`
 			Host       string `conf:"default:localhost"`
 			Name       string `conf:"default:postgres"`
 			DisableTLS bool   `conf:"default:true"`
 		}
+		Args conf.Args
 	}
 
 	if err := conf.Parse(os.Args[1:], "SALES", &cfg); err != nil {
 		if err == conf.ErrHelpWanted {
 			usage, err := conf.Usage("SALES", &cfg)
 			if err != nil {
-				return errors.Wrap(err, "generating config usage")
+				return errors.Wrap(err, "generating usage")
 			}
 			fmt.Println(usage)
 			return nil
 		}
-		log.Fatalf("error: parsing config: %s", err)
+		return errors.Wrap(err, "error: parsing config")
 	}
 
-	/*
-		--------------------------------------------
-		Open DB connection
-		--------------------------------------------
-	*/
-	db, err := database.OpenDB(database.Config{
+	// This is used for multiple commands below.
+	dbConfig := database.Config{
 		User:       cfg.DB.User,
-		Password:   "",
+		Password:   cfg.DB.Password,
 		Host:       cfg.DB.Host,
 		Name:       cfg.DB.Name,
 		DisableTLS: cfg.DB.DisableTLS,
-	})
+	}
+
+	var err error
+	switch cfg.Args.Num(0) {
+	case "migrate":
+		err = migrate(dbConfig)
+	case "seed":
+		err = seed(dbConfig)
+	case "useradd":
+		err = useradd(dbConfig, cfg.Args.Num(1), cfg.Args.Num(2))
+	default:
+		err = errors.New("Must specify a command")
+	}
+
 	if err != nil {
-		return errors.Wrap(err, "Database connection error")
+		return err
+	}
+
+	return nil
+}
+
+func migrate(cfg database.Config) error {
+	db, err := database.OpenDB(cfg)
+	if err != nil {
+		return err
 	}
 	defer db.Close()
 
-	flag.Parse()
+	if err := schema.Migrate(db); err != nil {
+		return err
+	}
 
-	switch flag.Arg(0) {
-	case "migrate":
-		if err := schema.Migrate(db); err != nil {
-			return errors.Wrap(err, "Applying Migrations...")
-		}
-		log.Println("Migration complete...")
-		return nil
-	case "seed":
-		if err := schema.Seed(db); err != nil {
-			return errors.Wrap(err, "Applying Seed...")
-		}
-		log.Println("Seeding complete...")
+	fmt.Println("Migrations complete")
+	return nil
+}
+
+func seed(cfg database.Config) error {
+	db, err := database.OpenDB(cfg)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	if err := schema.Seed(db); err != nil {
+		return err
+	}
+
+	fmt.Println("Seed data complete")
+	return nil
+}
+
+func useradd(cfg database.Config, email, password string) error {
+	db, err := database.OpenDB(cfg)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	if email == "" || password == "" {
+		return errors.New("useradd command must be called with two additional arguments for email and password")
+	}
+
+	fmt.Printf("Admin user will be created with email %q and password %q\n", email, password)
+	fmt.Print("Continue? (1/0) ")
+
+	var confirm bool
+	if _, err := fmt.Scanf("%t\n", &confirm); err != nil {
+		return errors.Wrap(err, "processing response")
+	}
+
+	if !confirm {
+		fmt.Println("Canceling")
 		return nil
 	}
 
+	ctx := context.Background()
+
+	nu := user.NewUser{
+		Email:           email,
+		Password:        password,
+		PasswordConfirm: password,
+		Roles:           []string{auth.RoleAdmin, auth.RoleUser},
+	}
+
+	u, err := user.Create(ctx, db, nu, time.Now())
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("User created with id:", u.ID)
 	return nil
 }
