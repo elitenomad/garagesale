@@ -3,16 +3,19 @@ package product
 import (
 	"context"
 	"database/sql"
+	"time"
+
+	"github.com/elitenomad/garagesale/internal/platform/auth"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
-	"time"
 )
 
 // Failure scenarios.
 var (
-	ErrNotFound = errors.New("product not found")
+	ErrNotFound  = errors.New("product not found")
 	ErrInvalidID = errors.New("ID is not in its proper form")
+	ErrForbidden = errors.New("Attempted action is not allowed")
 )
 
 func List(ctx context.Context, db *sqlx.DB) ([]Product, error) {
@@ -58,28 +61,28 @@ func Fetch(ctx context.Context, db *sqlx.DB, id string) (*Product, error) {
 		return nil, errors.Wrap(err, "selecting single product")
 	}
 
-
 	return &p, nil
 }
 
-func Create(ctx context.Context, db *sqlx.DB, data NewProduct, now time.Time) (*Product, error) {
+func Create(ctx context.Context, db *sqlx.DB, user auth.Claims, data NewProduct, now time.Time) (*Product, error) {
 	p := Product{
-		ID: uuid.New().String(),
-		Name:     data.Name,
-		Cost:     data.Cost,
-		Quantity: data.Quantity,
+		ID:          uuid.New().String(),
+		Name:        data.Name,
+		Cost:        data.Cost,
+		Quantity:    data.Quantity,
+		UserID:      user.Subject,
 		DateCreated: now.UTC(),
 		DateUpdated: now.UTC(),
 	}
 
 	const q = `
 		INSERT INTO products
-		(product_id, name, cost, quantity, date_created, date_updated)
-		VALUES ($1, $2, $3, $4, $5, $6)`
+		(product_id, name, cost, quantity, user_id, date_created, date_updated)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)`
 
 	_, err := db.Exec(q,
 		p.ID, p.Name,
-		p.Cost, p.Quantity,
+		p.Cost, p.Quantity, p.UserID,
 		p.DateCreated, p.DateUpdated)
 	if err != nil {
 		return nil, errors.Wrap(err, "inserting product")
@@ -88,11 +91,17 @@ func Create(ctx context.Context, db *sqlx.DB, data NewProduct, now time.Time) (*
 	return &p, nil
 }
 
-
-func Update(ctx context.Context, db *sqlx.DB, id string, update UpdateProduct, now time.Time) error {
+func Update(ctx context.Context, db *sqlx.DB, id string, user auth.Claims, update UpdateProduct, now time.Time) error {
 	p, err := Fetch(ctx, db, id)
 	if err != nil {
 		return err
+	}
+
+	// If you do not have the admin role ...
+	// and you are not the owner of this product ...
+	// then get outta here!
+	if !user.HasRole(auth.RoleAdmin) && p.UserID != user.Subject {
+		return ErrForbidden
 	}
 
 	if update.Name != nil {
@@ -136,4 +145,3 @@ func Delete(ctx context.Context, db *sqlx.DB, id string) error {
 
 	return nil
 }
-

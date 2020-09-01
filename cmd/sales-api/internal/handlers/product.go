@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/elitenomad/garagesale/internal/platform/auth"
 	"github.com/elitenomad/garagesale/internal/platform/web"
 	"github.com/elitenomad/garagesale/internal/product"
 	"github.com/go-chi/chi"
@@ -48,12 +49,19 @@ func (p *Product) Fetch(ctx context.Context, w http.ResponseWriter, r *http.Requ
 }
 
 func (p *Product) Create(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+
+	claims, ok := ctx.Value(auth.Key).(auth.Claims)
+
+	if !ok {
+		return errors.New("Auth claims is not in context")
+	}
+
 	var np product.NewProduct
 	if err := web.Decode(r, &np); err != nil {
 		return errors.Wrap(err, "decoding new product")
 	}
 
-	product, err := product.Create(ctx, p.Db, np, time.Now())
+	product, err := product.Create(ctx, p.Db, claims, np, time.Now())
 	if err != nil {
 		return errors.Wrap(err, "creating new product")
 	}
@@ -69,12 +77,20 @@ func (p *Product) Update(ctx context.Context, w http.ResponseWriter, r *http.Req
 		return errors.Wrap(err, "decoding product update")
 	}
 
-	if err := product.Update(ctx, p.Db, id, update, time.Now()); err != nil {
+	claims, ok := ctx.Value(auth.Key).(auth.Claims)
+
+	if !ok {
+		return errors.New("Auth claims is not in context")
+	}
+
+	if err := product.Update(ctx, p.Db, id, claims, update, time.Now()); err != nil {
 		switch err {
 		case product.ErrNotFound:
 			return web.NewRequestError(err, http.StatusNotFound)
 		case product.ErrInvalidID:
 			return web.NewRequestError(err, http.StatusBadRequest)
+		case product.ErrForbidden:
+			return web.NewRequestError(err, http.StatusForbidden)
 		default:
 			return errors.Wrapf(err, "updating product %q", id)
 		}

@@ -21,6 +21,14 @@ var migrations = []darwin.Migration{
 		Description: "Add users",
 		Script:      CREATE_USERS_TABLE,
 	},
+	{
+		Version:     4,
+		Description: "Add user column to products",
+		Script: `
+ALTER TABLE products
+	ADD COLUMN user_id UUID DEFAULT '00000000-0000-0000-0000-000000000000'
+`,
+	},
 }
 
 func Migrate(db *sqlx.DB) error {
