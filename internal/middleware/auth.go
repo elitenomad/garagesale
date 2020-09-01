@@ -8,6 +8,7 @@ import (
 	"github.com/elitenomad/garagesale/internal/platform/auth"
 	"github.com/elitenomad/garagesale/internal/platform/web"
 	"github.com/pkg/errors"
+	"go.opencensus.io/trace"
 )
 
 var ErrForbidden = web.NewRequestError(
@@ -56,6 +57,9 @@ func HasRole(roles ...string) web.Middleware {
 	f := func(after web.Handler) web.Handler {
 
 		h := func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+
+			ctx, span := trace.StartSpan(ctx, "internal.middleware.auth.web")
+			defer span.End()
 
 			claims, ok := ctx.Value(auth.Key).(auth.Claims)
 			if !ok {

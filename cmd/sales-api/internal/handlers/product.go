@@ -12,6 +12,7 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
+	"go.opencensus.io/trace"
 )
 
 type Product struct {
@@ -20,6 +21,10 @@ type Product struct {
 }
 
 func (p *Product) List(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+
+	ctx, span := trace.StartSpan(r.Context(), "internal.handlers.product.list")
+	defer span.End()
+
 	products, err := product.List(ctx, p.Db)
 	if err != nil {
 		return errors.Wrap(err, "getting product list")
@@ -30,6 +35,9 @@ func (p *Product) List(ctx context.Context, w http.ResponseWriter, r *http.Reque
 
 func (p *Product) Fetch(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 	id := chi.URLParam(r, "id")
+
+	ctx, span := trace.StartSpan(r.Context(), "internal.handlers.product.fetch")
+	defer span.End()
 
 	pdct, err := product.Fetch(ctx, p.Db, id)
 	if err != nil {
@@ -49,6 +57,9 @@ func (p *Product) Fetch(ctx context.Context, w http.ResponseWriter, r *http.Requ
 }
 
 func (p *Product) Create(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+
+	ctx, span := trace.StartSpan(r.Context(), "internal.handlers.product.Create")
+	defer span.End()
 
 	claims, ok := ctx.Value(auth.Key).(auth.Claims)
 
@@ -100,6 +111,9 @@ func (p *Product) Update(ctx context.Context, w http.ResponseWriter, r *http.Req
 }
 
 func (p *Product) Delete(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+	ctx, span := trace.StartSpan(r.Context(), "internal.handlers.product.Delete")
+	defer span.End()
+
 	id := chi.URLParam(r, "id")
 
 	if err := product.Delete(ctx, p.Db, id); err != nil {
@@ -115,6 +129,10 @@ func (p *Product) Delete(ctx context.Context, w http.ResponseWriter, r *http.Req
 }
 
 func (p *Product) AddSale(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+
+	ctx, span := trace.StartSpan(r.Context(), "internal.handlers.product.AddSale")
+	defer span.End()
+
 	var ns product.NewSale
 	if err := web.Decode(r, &ns); err != nil {
 		return errors.Wrap(err, "decoding new sale")
@@ -132,6 +150,10 @@ func (p *Product) AddSale(ctx context.Context, w http.ResponseWriter, r *http.Re
 
 // ListSales gets all sales for a particular product.
 func (p *Product) ListSales(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+
+	ctx, span := trace.StartSpan(r.Context(), "internal.handlers.product.ListSales")
+	defer span.End()
+
 	id := chi.URLParam(r, "id")
 
 	list, err := product.ListSales(ctx, p.Db, id)
