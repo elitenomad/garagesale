@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/go-chi/chi"
+	"go.opencensus.io/plugin/ochttp"
+	"go.opencensus.io/plugin/ochttp/propagation/tracecontext"
 	"go.opencensus.io/trace"
 )
 
@@ -29,15 +31,23 @@ type App struct {
 	mux *chi.Mux
 	log *log.Logger
 	mw  []Middleware
+	och *ochttp.Handler
 }
 
 // NewApp knows how to construct internal state for an App.
-func NewApp(logger *log.Logger, mw ...Middleware) *App {
-	return &App{
+func NewApp(log *log.Logger, mw ...Middleware) *App {
+	app := App{
+		log: log,
 		mux: chi.NewRouter(),
-		log: logger,
 		mw:  mw,
 	}
+
+	app.och = &ochttp.Handler{
+		Handler:     app.mux,
+		Propagation: &tracecontext.HTTPFormat{},
+	}
+
+	return &app
 }
 
 func (app *App) Handle(method, pattern string, h Handler, mw ...Middleware) {
@@ -70,5 +80,5 @@ func (app *App) Handle(method, pattern string, h Handler, mw ...Middleware) {
 }
 
 func (app *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	app.mux.ServeHTTP(w, r)
+	app.och.ServeHTTP(w, r)
 }
